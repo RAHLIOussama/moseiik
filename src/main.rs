@@ -440,22 +440,93 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    
+        //fonction permettant d'ouvrir une image
+    fn open_image(image_path: &str) -> Result<RgbImage, Box<dyn Error>> {
+        // Ici on recrée une variable car image_path n'est pas mutable
+        let path = image_path;
+        // Ouverture de l'image
+        let image = ImageReader::open(&path)?.decode()?.into_rgb8();
+        Ok(image)
+    }
+
     #[test]
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+   #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     fn unit_test_x86() {
-        // TODO
-        assert!(true);
+        // Cas 1 : Même image
+        let image_path = "assets/tiles-small/tile-1.png";
+        let result = open_image(image_path);
+        if let Ok(target) = result {
+            unsafe {
+                assert_eq!(l1_x86_sse2(&target, &target), 0);
+            }
+        } else {
+            assert!(false, "Échec du chargement de l'image pour le test x86 pour le cas 1");
+        }
+
+        // Cas 2 : Deux images différentes
+        let image_path1 = "assets/tiles-small/tile-1.png";
+        let image_path2 = "assets/tiles-small/tile-2.png";
+        let result1 = open_image(image_path1);
+        let result2 = open_image(image_path2);
+        if let (Ok(im1), Ok(im2)) = (result1, result2) {
+            unsafe {
+                assert!(l1_x86_sse2(&im1, &im2) > 0);
+            }
+        } else {
+            assert!(false, "Échec du chargement des images pour le test x86 pour le cas 2");
+        }
     }
 
     #[test]
     #[cfg(target_arch = "aarch64")]
     fn unit_test_aarch64() {
-        assert!(true);
+        // Cas 1 : Même image
+        let image_path = "assets/tiles-small/tile-1.png";
+        let result = open_image(image_path);
+        if let Ok(target) = result {
+            unsafe {
+                assert_eq!(l1_neon(&target, &target), 0);
+            }
+        } else {
+            assert!(false, "Échec du chargement de l'image pour le test Arm pour le cas 1");
+        }
+
+        // Cas 2 : Deux images différentes
+        let image_path1 = "assets/tiles-small/tile-1.png";
+        let image_path2 = "assets/tiles-small/tile-2.png";
+        let result1 = open_image(image_path1);
+        let result2 = open_image(image_path2);
+        if let (Ok(im1), Ok(im2)) = (result1, result2) {
+            unsafe {
+                assert!(l1_neon(&im1, &im2) > 0);
+            }
+        } else {
+            assert!(false, "Échec du chargement des images pour le test Arm pour le cas 2");
+        }
     }
 
     #[test]
     fn unit_test_generic() {
-        // TODO
-        assert!(true);
+        // Cas 1 : Même image
+        let image_path = "assets/tiles-small/tile-3.png";
+        let result = open_image(image_path);
+        if let Ok(target) = result {
+            assert_eq!(l1_generic(&target, &target), 0);
+        } else {
+            assert!(false, "Échec du chargement de l'image pour le test générique pour le cas 1");
+        }
+
+        // Cas 2 : Deux images différentes
+        let image_path1 = "assets/tiles-small/tile-2.png";
+        let image_path2 = "assets/tiles-small/tile-4.png";
+        let result1 = open_image(image_path1);
+        let result2 = open_image(image_path2);
+        if let (Ok(im1), Ok(im2)) = (result1, result2) {
+            assert!(l1_generic(&im1, &im2) > 0);
+        } else {
+            assert!(false, "Échec du chargement des images pour le test générique pour le cas 2");
+        }
     }
 }
