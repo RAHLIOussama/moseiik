@@ -27,35 +27,11 @@ jobs:
         with:
           platforms: all
 
-      - name: Check Docker Buildx version
-        run: docker buildx version
-
-      - name: Check QEMU installation
-        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ matrix.platform }}-${{ hashFiles('**/Dockerfile') }}
-          restore-keys: ${{ runner.os }}-buildx-${{ matrix.platform }}-
-
       - name: Build Docker image
         run: |
-          docker buildx build \
-            --platform ${{ matrix.platform }} \
-            -t moseiik-test:latest \
-            -f Dockerfile --load \
-            --build-arg BUILDKIT_INLINE_CACHE=1 \
-            --cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max .
-
-      - name: Inspect Docker image
-        run: docker inspect moseiik-test:latest
+          docker buildx build --platform ${{ matrix.platform }} -t moseiik-test:latest -f Dockerfile .
 
       - name: Run tests
         run: |
-          docker run \
-            --platform ${{ matrix.platform }} \
-            moseiik-test:latest
-            continue-on-error: true
+          docker run --platform ${{ matrix.platform }} moseiik-test:latest
+        continue-on-error: true  
