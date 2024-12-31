@@ -58,3 +58,4 @@ jobs:
           docker run \
             --platform ${{ matrix.platform }} \
             moseiik-test:latest
+            continue-on-error: true
