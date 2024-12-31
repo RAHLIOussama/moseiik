@@ -1,0 +1,57 @@
+name: CI-Moseiik
+
+on:
+  push:
+    branches:
+      - main  # Déclenche le workflow sur les pushs vers la branche main
+  pull_request:
+    branches:
+      - main  # Déclenche le workflow sur les pull requests vers la branche main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]  # Teste sur deux architectures : amd64 et arm64
+
+    steps:
+      # Récupération du code source
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Configuration Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Configuration QEMU (pour la compatibilité multiplateforme)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      # Mise en cache des couches Docker
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ matrix.platform }}-${{ hashFiles('**/Dockerfile') }}
+          restore-keys: ${{ runner.os }}-buildx-${{ matrix.platform }}-
+
+      # Construction de l'image Docker multiplateforme
+      - name: Build Docker image
+        run: |
+          docker buildx build \
+            --platform ${{ matrix.platform }} \
+            -t moseiik-test:latest \
+            -f docker/Dockerfile --load \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            --cache-from=type=local,src=/tmp/.buildx-cache \
+            --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max .
+
+      # Execution des tests à l'intérieur du conteneur
+      - name: Run tests
+        run: |
+          docker run \
+            --platform ${{ matrix.platform }} \
+            moseiik-test:latest
