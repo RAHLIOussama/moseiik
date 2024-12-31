@@ -45,7 +45,7 @@ jobs:
           docker buildx build \
             --platform ${{ matrix.platform }} \
             -t moseiik-test:latest \
-            -f docker/Dockerfile --load \
+            -f Dockerfile --load \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --cache-from=type=local,src=/tmp/.buildx-cache \
             --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max .
